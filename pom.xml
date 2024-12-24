@@ -1,0 +1,41 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>AdventOfCode2024</groupId>
+  <artifactId>AdventOfCode2024</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <!-- Dependencies Section -->
+  <dependencies>
+    <!-- Guava Dependency for Java (JRE) Projects -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>33.4.0-jre</version>
+    </dependency>
+    
+    <!-- 
+      Uncomment the below dependency if you're developing for Android.
+      Ensure you comment out the JRE version to avoid conflicts.
+    -->
+    <!--
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>33.4.0-android</version>
+    </dependency>
+    -->
+    
+    <!-- You can add other dependencies here -->
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <release>20</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

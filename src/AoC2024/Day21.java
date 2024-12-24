@@ -11,22 +11,24 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 import AoC2022.Day;
-import AoC2024.Day21_1223_backup.Place;
 import AoC2024.utils.Coordinate;
 
 public class Day21 extends Day {
-	
-	private Map<Character,Map<Character,Set<String>>> hashmap_num;
+	private Map<Character,Map<Character,List<String>>> hashmap_num;
 	private Place[][] map_num;
 	private char[] elements_num;
 	
-	private Map<Character,Map<Character,Set<String>>> hashmap_arrow;
+	private Map<Character,Map<Character,List<String>>> hashmap_arrow;
 	private Place[][] map_arrow;
 	private char[] elements_arrow;
 	
 	private final char _CA='X';
 	private final char _ACK='A';
+	private final String _ACK_STR=String.valueOf(_ACK);
 	
 	private final int[] dx = {-1, 0, 1, 0};
     private final int[] dy = {0, 1, 0, -1};
@@ -45,7 +47,7 @@ public class Day21 extends Day {
 			}
 		}
 		elements_num=new char[]{'0','1','2','3','4','5','6','7','8','9','A'};
-		hashmap_num = new HashMap<Character, Map<Character,Set<String>>>();
+		hashmap_num = new HashMap<Character, Map<Character,List<String>>>();
 		
 		char[][] pad_arrow = new char[][]{{_CA,'^','A'},{'<','v','>'}};
 		map_arrow = new Place[pad_arrow.length][pad_arrow[0].length];
@@ -55,7 +57,8 @@ public class Day21 extends Day {
 			}
 		}
 		elements_arrow=new char[]{'<','v','>','^','A'};
-		hashmap_arrow = new HashMap<Character, Map<Character,Set<String>>>();
+		hashmap_arrow = new HashMap<Character, Map<Character,List<String>>>();
+		
 	}
 	
 	public int calcScore(String _str) {
@@ -68,130 +71,114 @@ public class Day21 extends Day {
 		return count;
 	}
 	
-	public void processFile() {
-		String[] lines = sb.toString().split("\n");
-		fillMap(elements_num, map_num, hashmap_num);
-		fillMap(elements_arrow, map_arrow, hashmap_arrow);
+	public List<ScoredPath> encodeHeuristics(ScoredPath _sp, Map<Character, Map<Character, List<String>>> _hashmap, char _ch_prev) {
+		final int K = 25;
 		
-
-		for (char from : elements_arrow) {
-			for (char to : elements_arrow) {
-				String ft = ""+from+to;
-				System.out.print(ft+" -> ");
-				List<String> l = hashmap_arrow.get(from).get(to).stream().collect(Collectors.toList());
-				for (int i = 0; i < l.size(); i++) {
-					String s = l.get(i);
-					if(!s.endsWith(_ACK+"")) s+=_ACK;
-						
-					if(i!=l.size()-1)
-						System.out.print(s+" | ");
-					else
-						System.out.print(s);
+		List<ScoredPath> currentPaths = new ArrayList<>();
+	    currentPaths.add(new ScoredPath(null, 0));
+		
+		
+	    for (int i = 0; i < _sp.values.size(); i++) {
+	    	String _value_part = _sp.value_memo.get(_sp.values.get(i));
+	    	StringBuilder old_string = new StringBuilder();
+	    	StringBuilder new_string = new StringBuilder();
+	    	
+	    	for (char _ch_next : _value_part.toCharArray()) {
+	    		PriorityQueue<ScoredPath> queue = new PriorityQueue<>(Comparator.comparingInt(ScoredPath::getScore));
+	    		
+	    		old_string.append(_ch_next);
+				// addig kell olvasni amig nem nem érünk egy elágazáshoz
+	    		List<String> steps = _hashmap.get(_ch_prev).get(_ch_next);
+				if(steps.size()==1) {
+					new_string.append(steps.get(0));
+				} else {
+					
+					for (ScoredPath scoredPath : currentPaths) {
+						for (String step : steps) {
+							
+//							String _post = step.equals(String.valueOf(_ACK))?scoredPath.value+step:scoredPath.value+step+_ACK;
+							
+							String _new_str = new_string.toString()+step+(step.equals(_ACK_STR)?"":_ACK_STR);
+									
+							queue.add(new ScoredPath(scoredPath,_new_str, calcScore(_new_str)));
+							
+							if(queue.size() > K) {
+								queue.poll();
+								
+							}
+						}
+					}
+					currentPaths = new ArrayList<>(queue);
+					old_string = new StringBuilder();
+			    	new_string = new StringBuilder();
 				}
-				System.out.println();
+				
+				
+				_ch_prev = _ch_next;
 				
 			}
 		}
-		System.out.println();
-
-		
-		long result_part1 = 0;
-		
-		
-		logln("result part1: "+result_part1); // correct: 278568
-		
-		long result_part2 = 0;
-		
-		logln("result part2: "+result_part2); // correct: 
+		return currentPaths;
 	}
 
-	public static void main(String[] args) {
-		long time_start = System.currentTimeMillis();
-		Day21 day = new Day21();
-		day.readFile();
-		day.processFile();
-		long time_end = System.currentTimeMillis();
-		day.logln("Execution time: "+(time_end-time_start)+" msec");
-		day.flush();
-	}
+
 	
-	public Place find_char_in_array(Place[][] arr,char _ch) {
-		for (int j = 0; j < arr.length; j++) { //y
-			for (int i = 0; i < arr[j].length; i++) { //x
-				if(arr[j][i].ch==_ch) return arr[j][i];
-			}
-		}
-		return null;
-	}
-	
-	public Set<String> find_shortest_from_to(Place[][] arr,char char_from, char char_to) {
-		if(char_from == char_to) return new HashSet<String>(List.of(_ACK+""));
-		
-		int height = arr.length;
-		int width=arr[0].length;
-		
-		Place from = find_char_in_array(arr,char_from);
-		Place to = find_char_in_array(arr,char_to);
-		
-		PriorityQueue<StackState> queue = new PriorityQueue<>((a, b) -> Integer.compare(heuristic(a), heuristic(b)));
-		Set<String> shortest_paths = new HashSet<String>();
-		queue.add(new StackState(from.y, from.x, 0,"",from,to,0));
-		int min_score = Integer.MAX_VALUE;
-		
-		while (!queue.isEmpty()) {
-	        StackState s = queue.poll();
-	        if (s.y == to.y && s.x == to.x) {
-	            if (s.score < min_score) {
-	            	shortest_paths.clear();
-	            	min_score = s.score;
-	            	shortest_paths.add(s.visited);
-	            } else if(s.score == min_score) {
-	            	shortest_paths.add(s.visited);
-	            }
-	            continue;
-	        }
+	public Set<String> encode(String _str, Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev){
+		Set<String> result = new HashSet<>();
+	    
+	    for (char _ch_next : _str.toCharArray()) {
+	        // Get the set of paths from _ch_prev to _ch_next
+	    	List<String> currentPaths = _hashmap.get(_ch_prev).get(_ch_next);
+	        Set<String> newResult = new HashSet<>();
 	        
-	        for (int i = 0; i < dx.length; i++) {
-	        	int newX = s.x + dx[i];
-	            int newY = s.y + dy[i];
-	            
-	            if (newX < 0 || newX >= width || newY < 0 || newY >= height || arr[newY][newX].wall) continue;
-	            Place next = arr[newY][newX];
-	            
-	            int newScore = s.score + 1;
-	            
-	            if (newScore <= next.min_score) {
-	            	int turnScore = (s.dir != i && s.dir != -1) ? 1 : 0;
-	            	newScore+=turnScore; //TODO:benne hagyni, sokat gyorsít
-	            	next.min_score = newScore;
-	                queue.add(new StackState(newY, newX, newScore,s.visited+dc[i],s.from,s.to,i));
-	            }
-    		}
-		}
-		return shortest_paths;
-	}
-	
-	public void fillMap(char[] _elements, Place[][] _map, Map<Character, Map<Character,Set<String>>> _hashmap) {
-		for (char from : _elements) {
-			Map<Character,Set<String>> row = new HashMap<Character,Set<String>>();
-			for (char to : _elements) {
-				row.put(to, find_shortest_from_to(_map,from,to));
-				resetDist(_map);
+	        if (result.isEmpty()) {
+	            // Initialize result with the first step's paths
+	            newResult.addAll(currentPaths);
+	        } else {
+	            // Combine existing paths in result with current paths
+	        	if(!currentPaths.isEmpty()) {
+	        		for (String existingPath : result) {
+	            	
+	            		for (String newPath : currentPaths) {
+		                    String combinedPath = existingPath;
+		                    combinedPath+=newPath;
+		                    newResult.add(combinedPath);
+		                }
+	        		}
+	        	} else {
+            		newResult = result;
+            	}
+	        }
+	        Set<String> newResultWitA = new HashSet<>();
+	        for (String _nl : newResult) {
+	        	newResultWitA.add(_nl+_ACK);
+//	        	logln("parts:"+newResultWitA);
 			}
-			_hashmap.put(Character.valueOf(from), row);
-		}
+	        
+	        // Update result for the next iteration
+	        result = newResultWitA;
+	        _ch_prev = _ch_next;
+	    }
+	    
+		return result;
 	}
 	
-	private void resetDist(Place[][] _map) {
-		for (int j = 0; j < _map.length; j++) { //y
-			for (int i = 0; i < _map[j].length; i++) { //x
-				_map[j][i].min_score=Integer.MAX_VALUE;
-			}
+	public Set<ScoredPath> encode_possible_strings_Heuristics(Set<ScoredPath> _to_be_encoded_strs, final Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev, int _lvl){
+		Set<ScoredPath> encoded_strs = new HashSet<ScoredPath>();
+		for (ScoredPath _sp : _to_be_encoded_strs) {
+			List<ScoredPath> chs = encodeHeuristics(_sp,_hashmap,_ch_prev);
+			encoded_strs.addAll(chs);
 		}
+		return encoded_strs;
 	}
 	
-	private int heuristic(StackState state) {
-	    return Math.abs(state.to.x - state.x) + Math.abs(state.to.y - state.y);
+	public Set<String> encode_possible_strings(Set<String> _to_be_encoded_strs, final Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev, int _lvl){
+		Set<String> encoded_strs = new HashSet<String>();
+		for (String _sp : _to_be_encoded_strs) {
+			Set<String> chs = encode(_sp,_hashmap,_ch_prev);
+			encoded_strs.addAll(chs);
+		}
+		return encoded_strs;
 	}
 	
 	private String decode(String _chars, Place[][] map, char _start) {
@@ -231,29 +218,260 @@ public class Day21 extends Day {
     	return sb.toString();
     }
 	
-	class ScoredPath {
-		String value;
-		HashMap<String, String> memo;
-		
-		public String getValue() {
-			return value;
-		}
 
+	
+	public void processFile() {
+		String[] lines = sb.toString().split("\n");
+		fillMap(elements_num, map_num, hashmap_num);
+		fillMap(elements_arrow, map_arrow, hashmap_arrow);
+		
+		long result_part1 = 0;
+		char _ch_prev = _ACK;
+		
+		for (String _string : lines) {
+			int code = Integer.parseInt(_string.substring(0,_string.length()-1));
+			Set<String> sets_str = encode_possible_strings(new HashSet<String>(List.of(_string)),hashmap_num,_ch_prev,0);
+			
+			int minLength1 = sets_str.stream()
+                    .mapToInt(String::length)
+                    .min()
+                    .orElse(0);
+			
+//			sets_str=sets_str.stream()
+//		            .filter(str -> str.length() == minLength1)
+//		            .collect(Collectors.toSet());
+			
+			int _top_scores = sets_str.stream()
+                    .mapToInt(this::calcScore)
+                    .max()
+                    .orElse(0);
+			
+			sets_str=sets_str.stream()
+		            .filter(str -> calcScore(str) == _top_scores)
+		            .collect(Collectors.toSet());
+			
+			Optional<String> _ostr = sets_str.stream().findFirst();
+			logln("Finished 0. round, minlength : "+minLength1+" one example:"+_ostr.get());
+			
+			Set<ScoredPath> sets = new HashSet<ScoredPath>(); 
+			for (String _result : sets_str) {
+				ScoredPath sp = new ScoredPath(_result, calcScore(_result));
+				sets.add(sp);
+			}
+			
+			
+			int minLength = 0;
+			for (int i = 0; i < 6; i++) {
+				
+				
+				sets = encode_possible_strings_Heuristics(sets,hashmap_arrow,_ch_prev,i);
+				
+				int l_minLength = sets.stream()
+						.mapToInt(ScoredPath::getLength)
+	                    .min() 
+	                    .orElse(0);
+				
+				sets=sets.stream()
+			            .filter(str -> str.length == l_minLength)
+			            .collect(Collectors.toSet());
+				
+				int _top_scores2 = sets.stream()
+						.mapToInt(ScoredPath::getScore)
+	                    .max()
+	                    .orElse(0);
+				
+				sets=sets.stream()
+						.filter(str -> str.getScore() == _top_scores2)
+			            .collect(Collectors.toSet());
+				
+				sets = sets.stream()
+                        .limit(20) // Limit to first 20 elements
+                        .collect(Collectors.toSet());
+				
+				minLength = l_minLength;
+				Optional<ScoredPath> _ostr2  = sets.stream().findFirst();
+				logln("Finished "+(i+1)+". round, minlength : "+minLength+" set size: "+sets.size()+" one example:"+_ostr2.get().value_memo);
+				
+			}
+			
+			result_part1+=minLength*code;
+		}
+		
+		
+		
+		logln("result part1: "+result_part1); // correct: 278568
+		
+		long result_part2 = 0;
+		
+		logln("result part2: "+result_part2); // correct: 
+	}
+
+	public static void main(String[] args) {
+		long time_start = System.currentTimeMillis();
+		Day21 day = new Day21();
+		day.readFile();
+		day.processFile();
+		long time_end = System.currentTimeMillis();
+		day.logln("Execution time: "+(time_end-time_start)+" msec");
+		day.flush();
+	}
+	
+	public Place find_char_in_array(Place[][] arr,char _ch) {
+		for (int j = 0; j < arr.length; j++) { //y
+			for (int i = 0; i < arr[j].length; i++) { //x
+				if(arr[j][i].ch==_ch) return arr[j][i];
+			}
+		}
+		return null;
+	}
+	
+	public List<String> find_shortest_from_to(Place[][] arr,char char_from, char char_to) {
+		if(char_from == char_to) return new ArrayList<String>(List.of(_ACK+""));
+		
+		int height = arr.length;
+		int width=arr[0].length;
+		
+		Place from = find_char_in_array(arr,char_from);
+		Place to = find_char_in_array(arr,char_to);
+		
+		PriorityQueue<StackState> queue = new PriorityQueue<>((a, b) -> Integer.compare(heuristic(a), heuristic(b)));
+		List<String> shortest_paths = new ArrayList<String>();
+		queue.add(new StackState(from.y, from.x, 0,"",from,to,0));
+		int min_score = Integer.MAX_VALUE;
+		
+		while (!queue.isEmpty()) {
+	        StackState s = queue.poll();
+	        if (s.y == to.y && s.x == to.x) {
+	            if (s.score < min_score) {
+	            	shortest_paths.clear();
+	            	min_score = s.score;
+	            	shortest_paths.add(s.visited);
+	            } else if(s.score == min_score) {
+	            	shortest_paths.add(s.visited);
+	            }
+	            continue;
+	        }
+	        
+	        for (int i = 0; i < dx.length; i++) {
+	        	int newX = s.x + dx[i];
+	            int newY = s.y + dy[i];
+	            
+	            if (newX < 0 || newX >= width || newY < 0 || newY >= height || arr[newY][newX].wall) continue;
+	            Place next = arr[newY][newX];
+	            
+	            int newScore = s.score + 1;
+	            
+	            if (newScore <= next.min_score) {
+	            	int turnScore = (s.dir != i && s.dir != -1) ? 1 : 0;
+//	            	newScore+=turnScore; //TODO:benne hagyni, sokat gyorsít
+	            	next.min_score = newScore;
+	                queue.add(new StackState(newY, newX, newScore,s.visited+dc[i],s.from,s.to,i));
+	            }
+    		}
+		}
+		return shortest_paths;
+	}
+	
+	public void fillMap(char[] _elements, Place[][] _map, Map<Character, Map<Character,List<String>>> _hashmap) {
+		for (char from : _elements) {
+			Map<Character,List<String>> row = new HashMap<Character,List<String>>();
+			for (char to : _elements) {
+				row.put(to, find_shortest_from_to(_map,from,to));
+				resetDist(_map);
+			}
+			_hashmap.put(Character.valueOf(from), row);
+		}
+	}
+	
+	private void resetDist(Place[][] _map) {
+		for (int j = 0; j < _map.length; j++) { //y
+			for (int i = 0; i < _map[j].length; i++) { //x
+				_map[j][i].min_score=Integer.MAX_VALUE;
+			}
+		}
+	}
+	
+	private int heuristic(StackState state) {
+	    return Math.abs(state.to.x - state.x) + Math.abs(state.to.y - state.y);
+	}
+	
+	class ScoredPath {
+		
+		public int calcScore(String _str) {
+	        int count = 0;
+	        for (int i = 1; i < _str.length(); i++) {
+	            if (_str.charAt(i) == _str.charAt(i - 1)) {
+	            	count++;
+	            } 
+	        }
+			return count;
+		}
+		
+		List<Integer> values;
+		
+		BiMap<Integer, String> value_memo;
+		HashMap<Integer, Integer> score_memo;
+		
+		int length;
 		int score;
 		
 		public int getScore() {
 			return score;
 		}
+		
+		public int getLength() {
+			return length;
+		}
+		
+		public void store_value(String _str, int _score){
+			if(_str==null) return;
+			int _ID=value_memo.size();
+			if(!value_memo.containsValue(_str)) {
+				value_memo.put(_ID, _str);
+			}
+			score_memo.put(_ID, _score);
+			values.add(_ID);
+			score+=_score;
+			length+=_str.length();
+			if(values.size()>1) {
+				String _temp1 = value_memo.get(values.size()-2);
+				String _temp2 = value_memo.get(values.size()-1);
+				if(_temp1.length()>0 && _temp2.length()>0) {
+					String _comb = _temp1.substring(_temp1.length()-1)+_temp2.substring(0,1);
+					score+=calcScore(_comb);
+				}
+			}
+		}
 
+		public ScoredPath(ScoredPath sp, String _str, int _score) {
+			values = new ArrayList<Integer>(sp.values);
+			
+			value_memo = HashBiMap.create();
+			value_memo.putAll(sp.value_memo);
+			score_memo = new HashMap<Integer, Integer>();
+			score_memo.putAll(sp.score_memo);
+			this.score=sp.score;
+			this.length=sp.length;
+			store_value(_str,_score);
+		}
+		
 		public ScoredPath(String _str, int _score) {
-			this.value=_str;
-			this.score=_score;
-			memo=new HashMap<String, String>();
+			values = new ArrayList<Integer>();
+			value_memo = HashBiMap.create();
+			score_memo = new HashMap<Integer, Integer>();
+//			this.score=_score;
+//			this.length=_str.length();
+			store_value(_str,_score);
+			
 		}
 		
 		@Override
         public String toString() {
-        	return value+" s:"+score;
+			StringBuilder sb = new StringBuilder();
+			for (Integer _ID: values) {
+				sb.append(value_memo.get(_ID));
+			}
+        	return "s:"+score+" "+sb.toString();
         }
 	}
 	

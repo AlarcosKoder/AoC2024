@@ -1,0 +1,31 @@
+x00: 0
+x01: 1
+x02: 0
+x03: 1
+x04: 0
+x05: 1
+y00: 0
+y01: 0
+y02: 1
+y03: 1
+y04: 0
+y05: 1
+
+x00 AND y00 -> z05
+x01 AND y01 -> z02
+x02 AND y02 -> z01
+x03 AND y03 -> z03
+x04 AND y04 -> z04
+x05 AND y05 -> z00
+
+bitwise and: 9 z:1001 x:1101 y:1011
+|x00 AND y00 -> z05 and x05 AND y05 -> z00; 
+|x01 AND y01 -> z02 and x02 AND y02 -> z01.
+
+x-gates: 42 gates:{x00=id: x00 v:0, x01=id: x01 v:1, x02=id: x02 v:0, x03=id: x03 v:1, x04=id: x04 v:0, x05=id: x05 v:1}
+y-gates: 44 gates:{y00=id: y00 v:0, y01=id: y01 v:0, y02=id: y02 v:1, y03=id: y03 v:1, y04=id: y04 v:0, y05=id: y05 v:1}
+z-gates: 9 gates:{z00=id: z00 v:1, z01=id: z01 v:0, z02=id: z02 v:0, z03=id: z03 v:1, z04=id: z04 v:0, z05=id: z05 v:0}
+
+x-gates: 13 gates:{x00=id: x00 v:1, x01=id: x01 v:0, x02=id: x02 v:1, x03=id: x03 v:1, x04=id: x04 v:0, x05=id: x05 v:0}
+y-gates: 11 gates:{y00=id: y00 v:1, y01=id: y01 v:1, y02=id: y02 v:0, y03=id: y03 v:1, y04=id: y04 v:0, y05=id: y05 v:0}
+z-gates: 9 gates:{z00=id: z00 v:1, z01=id: z01 v:0, z02=id: z02 v:0, z03=id: z03 v:1, z04=id: z04 v:0, z05=id: z05 v:0}
