@@ -11,6 +11,12 @@
       <artifactId>guava</artifactId>
       <version>33.4.0-jre</version>
     </dependency>
+    <dependency>
+        <groupId>org.javatuples</groupId>
+        <artifactId>javatuples</artifactId>
+        <version>1.2</version>
+        <scope>compile</scope>
+    </dependency>
     
     <!-- 
       Uncomment the below dependency if you're developing for Android.
