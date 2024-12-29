@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 
@@ -84,21 +85,7 @@ public class Day24 extends Day {
 		// OK? gst,khg,nhn,tvb,vdc,z12,z21,z33
 		// nnq,tbn,vdc,nhn,z21,gst,z12,z33
 		
-		swap_gates(index.get("z12"), index.get("vdc"));
-		swap_gates(index.get("z21"), index.get("nhn"));
-		swap_gates(index.get("z33"), index.get("gst"));
-		swap_gates(index.get("khg"), index.get("tvb"));
-		
-		evaluate_gates();
-		evaluate_results();
-		logln("found:"+(supposed_result==gate_z_result));
-		
-		swap_gates(index.get("z12"), index.get("vdc"));
-		swap_gates(index.get("z21"), index.get("nhn"));
-		swap_gates(index.get("z33"), index.get("gst"));
-		swap_gates(index.get("khg"), index.get("tvb"));
-		
-		Set<String> result_set = new TreeSet<String>();
+		Set<List<String>> result_set = new HashSet<List<String>>();
 		
 		List<String> anomalies_keys = find_bad_z_gates();
 		List<String> remaining_gates = new ArrayList<String>(gates.stream().map(s -> s.out).toList());
@@ -123,26 +110,102 @@ public class Day24 extends Day {
     		swap_gates(index.get(anomalies_keys.get(1)), index.get(anomalies_keys.get(0)));
     		
     		if(gate_z_result == supposed_result) {
-    			Set<String> found_set = new TreeSet<String>();
+    			List<String> found_set = new ArrayList<String>();
     			found_set.addAll(anomalies_keys);  
     			found_set.add(list.get(0));
     			found_set.add(list.get(1));
-    			result_set.add(found_set.toString().replaceAll(" ", "").replaceAll("\\]", "").replaceAll("\\[", ""));
+    			result_set.add(found_set);
     		}
     		
         }
         String result_part2 = "";
-        logln(result_set.toString());
-        for (String result : result_set) {
-        	result_part2 = result;
-        	break;
+        for (List<String> set: result_set) {
+        	if (test_set(set)) {
+        		result_part2=set.stream().sorted().collect(Collectors.joining(",")).toString();
+        	}
 		}
+        
         // x       x       x   x   x   x
         //gst,khg,nhn,tvb,vdc,z12,z21,z33
         
-		logln("result part2: "+result_part2); // correct:gst,khg,nhn,tvb,vdc,z12,z21,z33
+		logln("result part2: "+result_part2); // correct:gst,khg,nhn,tvb,vdc,z12,z21,z33 (or gst, nhn, spf, tvb, vdc, z12, z21, z33)
 		// gst,nhn,tvb,vdc,vjg,z12,z21,z33 NOK
 		// gst,jhd,nhn,qss,vdc,z12,z21,z33 NOK
+	}
+	
+	public void swap_list(List<String> list) {
+		swap_gates(index.get(list.get(0)), index.get(list.get(1)));
+		swap_gates(index.get(list.get(2)), index.get(list.get(3)));
+		swap_gates(index.get(list.get(4)), index.get(list.get(5)));
+		swap_gates(index.get(list.get(6)), index.get(list.get(7)));
+		
+		evaluate_gates();
+		evaluate_results();
+		
+		swap_gates(index.get(list.get(0)), index.get(list.get(1)));
+		swap_gates(index.get(list.get(2)), index.get(list.get(3)));
+		swap_gates(index.get(list.get(4)), index.get(list.get(5)));
+		swap_gates(index.get(list.get(6)), index.get(list.get(7)));
+	}
+	
+	public boolean test_set(List<String> list) {
+		boolean all_good = true;
+		for (int i = 0; i < xy_len; i++) {
+			for (int j = 0; j < xy_len; j++) {
+				long number = 0L;
+				if(i==j){
+					number=1L;
+				}
+				String xKey = String.format("x%02d", j);
+				String yKey = String.format("y%02d", j);
+				wires.get(xKey).value=number;
+				wires.get(yKey).value=number;
+			}
+			
+			swap_list(list);
+			
+			if(gate_z_result != gate_x_result+gate_y_result) {
+				all_good = false;
+				break;
+			}
+			
+			for (int j = 0; j < xy_len; j++) {
+				long number = 0L;
+				if(i==j){
+					number=1L;
+				}
+				String xKey = String.format("x%02d", j);
+				String yKey = String.format("y%02d", j>0?j-1:j);
+				wires.get(xKey).value=number;
+				wires.get(yKey).value=number;
+			}
+			
+			swap_list(list);
+			
+			if(gate_z_result != gate_x_result+gate_y_result) {
+				all_good = false;
+				break;
+			}
+			
+			for (int j = 0; j < xy_len; j++) {
+				long number = 0L;
+				if(i==j){
+					number=1L;
+				}
+				String xKey = String.format("x%02d", j>0?j-1:j);
+				String yKey = String.format("y%02d", j);
+				wires.get(xKey).value=number;
+				wires.get(yKey).value=number;
+			}
+			
+			swap_list(list);
+			
+			if(gate_z_result != gate_x_result+gate_y_result) {
+				all_good = false;
+				break;
+			}
+		}
+		return all_good;
 	}
 	
 	public List<String> find_bad_z_gates() {
