@@ -80,11 +80,6 @@ public class Day24 extends Day {
 		long supposed_result = (INPUT_REAL?(gate_x_result+gate_y_result):(gate_x_result&gate_y_result));
 		logln("result part1: "+result_part1); // correct: 51410244478064 [sample: 2024]
 		
-		// gst,nhn,tvb,vdc,vjg,z12,z21,z33
-		// gst,jhd,nhn,qss,vdc,z12,z21,z33
-		// OK? gst,khg,nhn,tvb,vdc,z12,z21,z33
-		// nnq,tbn,vdc,nhn,z21,gst,z12,z33
-		
 		Set<List<String>> result_set = new HashSet<List<String>>();
 		
 		List<String> anomalies_keys = find_bad_z_gates();
@@ -125,10 +120,7 @@ public class Day24 extends Day {
         	}
 		}
         
-        // x       x       x   x   x   x
-        //gst,khg,nhn,tvb,vdc,z12,z21,z33
-        
-		logln("result part2: "+result_part2); // correct:gst,khg,nhn,tvb,vdc,z12,z21,z33 (or gst, nhn, spf, tvb, vdc, z12, z21, z33)
+		logln("result part2: "+result_part2); // correct:gst,khg,nhn,tvb,vdc,z12,z21,z33
 		// gst,nhn,tvb,vdc,vjg,z12,z21,z33 NOK
 		// gst,jhd,nhn,qss,vdc,z12,z21,z33 NOK
 	}
