@@ -79,6 +79,25 @@ public class Day24 extends Day {
 		long supposed_result = (INPUT_REAL?(gate_x_result+gate_y_result):(gate_x_result&gate_y_result));
 		logln("result part1: "+result_part1); // correct: 51410244478064 [sample: 2024]
 		
+		// gst,nhn,tvb,vdc,vjg,z12,z21,z33
+		// gst,jhd,nhn,qss,vdc,z12,z21,z33
+		// OK? gst,khg,nhn,tvb,vdc,z12,z21,z33
+		// nnq,tbn,vdc,nhn,z21,gst,z12,z33
+		
+		swap_gates(index.get("z12"), index.get("vdc"));
+		swap_gates(index.get("z21"), index.get("nhn"));
+		swap_gates(index.get("z33"), index.get("gst"));
+		swap_gates(index.get("khg"), index.get("tvb"));
+		
+		evaluate_gates();
+		evaluate_results();
+		logln("found:"+(supposed_result==gate_z_result));
+		
+		swap_gates(index.get("z12"), index.get("vdc"));
+		swap_gates(index.get("z21"), index.get("nhn"));
+		swap_gates(index.get("z33"), index.get("gst"));
+		swap_gates(index.get("khg"), index.get("tvb"));
+		
 		Set<String> result_set = new TreeSet<String>();
 		
 		List<String> anomalies_keys = find_bad_z_gates();
@@ -104,15 +123,26 @@ public class Day24 extends Day {
     		swap_gates(index.get(anomalies_keys.get(1)), index.get(anomalies_keys.get(0)));
     		
     		if(gate_z_result == supposed_result) {
-    			result_set.addAll(anomalies_keys);  
-    			result_set.add(list.get(0));
-    			result_set.add(list.get(1));
-    			break;
+    			Set<String> found_set = new TreeSet<String>();
+    			found_set.addAll(anomalies_keys);  
+    			found_set.add(list.get(0));
+    			found_set.add(list.get(1));
+    			result_set.add(found_set.toString().replaceAll(" ", "").replaceAll("\\]", "").replaceAll("\\[", ""));
     		}
     		
         }
-        String result_part2 = result_set.toString().replaceAll(" ", "");
-		logln("result part2: "+result_part2); // correct: gst,nhn,tvb,vdc,vjg,z12,z21,z33
+        String result_part2 = "";
+        logln(result_set.toString());
+        for (String result : result_set) {
+        	result_part2 = result;
+        	break;
+		}
+        // x       x       x   x   x   x
+        //gst,khg,nhn,tvb,vdc,z12,z21,z33
+        
+		logln("result part2: "+result_part2); // correct:gst,khg,nhn,tvb,vdc,z12,z21,z33
+		// gst,nhn,tvb,vdc,vjg,z12,z21,z33 NOK
+		// gst,jhd,nhn,qss,vdc,z12,z21,z33 NOK
 	}
 	
 	public List<String> find_bad_z_gates() {
