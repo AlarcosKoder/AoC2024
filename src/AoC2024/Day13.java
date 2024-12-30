@@ -5,13 +5,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.linear.LinearConstraint;
-import org.apache.commons.math3.optim.linear.LinearConstraintSet;
-import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
-import org.apache.commons.math3.optim.linear.Relationship;
-import org.apache.commons.math3.optim.linear.SimplexSolver;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import com.google.ortools.*;
 
 import AoC2022.Day;
 
@@ -137,42 +131,43 @@ public class Day13 extends Day {
 	}
 	
 	private static long solveClawMachine(MachineData machine) {
-        LinearObjectiveFunction objective = new LinearObjectiveFunction(new double[]{3, 1}, 0);
-
-        // Constraints
-        List<LinearConstraint> constraints = new ArrayList<>();
-        constraints.add(new LinearConstraint(
-                new double[]{machine.ax, machine.bx},
-                Relationship.EQ,
-                machine.px
-        ));
-        constraints.add(new LinearConstraint(
-                new double[]{machine.ay, machine.by},
-                Relationship.EQ,
-                machine.py
-        ));
-
-        // Solver
-        SimplexSolver solver = new SimplexSolver();
-        try {
-            PointValuePair solution = solver.optimize(
-                    new LinearConstraintSet(constraints),
-                    objective,
-                    GoalType.MINIMIZE
-            );
-
-            double[] vars = solution.getPoint();
-            long x = Math.round(vars[0]);
-            long y = Math.round(vars[1]);
-
-            if (x < 0 || y < 0) {
-                return -1;
-            }
-
-            return 3L * x + y;
-        } catch (Exception e) {
-            return -1; // No feasible solution
-        }
+//        LinearObjectiveFunction objective = new LinearObjectiveFunction(new double[]{3, 1}, 0);
+//
+//        // Constraints
+//        List<LinearConstraint> constraints = new ArrayList<>();
+//        constraints.add(new LinearConstraint(
+//                new double[]{machine.ax, machine.bx},
+//                Relationship.EQ,
+//                machine.px
+//        ));
+//        constraints.add(new LinearConstraint(
+//                new double[]{machine.ay, machine.by},
+//                Relationship.EQ,
+//                machine.py
+//        ));
+//
+//        // Solver
+//        SimplexSolver solver = new SimplexSolver();
+//        try {
+//            PointValuePair solution = solver.optimize(
+//                    new LinearConstraintSet(constraints),
+//                    objective,
+//                    GoalType.MINIMIZE
+//            );
+//
+//            double[] vars = solution.getPoint();
+//            long x = Math.round(vars[0]);
+//            long y = Math.round(vars[1]);
+//
+//            if (x < 0 || y < 0) {
+//                return -1;
+//            }
+//
+//            return 3L * x + y;
+//        } catch (Exception e) {
+//            return -1; // No feasible solution
+//        }
+		return -1;
     }
 
 	public static void main(String[] args) {
