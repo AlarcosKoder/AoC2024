@@ -1,309 +1,88 @@
 package AoC2024;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 
 import AoC2022.Day;
-import AoC2024.utils.Coordinate;
 
 public class Day21 extends Day {
-	private Map<Character,Map<Character,List<String>>> hashmap_num;
-	private Place[][] map_num;
-	private char[] elements_num;
+	private Map<String,String> hashmap_num;
 	
-	private Map<Character,Map<Character,List<String>>> hashmap_arrow;
-	private Place[][] map_arrow;
-	private char[] elements_arrow;
+	private Map<String,String> hashmap_arrow;
 	
-	private final char _CA='X';
 	private final char _ACK='A';
 	private final String _ACK_STR=String.valueOf(_ACK);
 	
-	private final int[] dx = {-1, 0, 1, 0};
-    private final int[] dy = {0, 1, 0, -1};
-    private final char[] dc = {'<', 'v', '>', '^'};
     
 	public Day21() {
 		super();
 		LOG_LEVEL = 1;
-		INPUT_REAL = false;
+		INPUT_REAL = true;
 		
-		char[][] pad_num = new char[][]{{'7','8','9'},{'4','5','6'},{'1','2','3'},{_CA,'0','A'}};
-		map_num = new Place[pad_num.length][pad_num[0].length];
-		for (int j = 0; j < pad_num.length; j++) {
-			for (int i = 0; i < pad_num[0].length; i++) {
-				map_num[j][i]=new Place(i, j, pad_num[j][i], pad_num[j][i]==_CA?true:false);
-			}
-		}
-		elements_num=new char[]{'0','1','2','3','4','5','6','7','8','9','A'};
-		hashmap_num = new HashMap<Character, Map<Character,List<String>>>();
-		
-		char[][] pad_arrow = new char[][]{{_CA,'^','A'},{'<','v','>'}};
-		map_arrow = new Place[pad_arrow.length][pad_arrow[0].length];
-		for (int j = 0; j < pad_arrow.length; j++) {
-			for (int i = 0; i < pad_arrow[0].length; i++) {
-				map_arrow[j][i]=new Place(i, j, pad_arrow[j][i], pad_arrow[j][i]==_CA?true:false);
-			}
-		}
-		elements_arrow=new char[]{'<','v','>','^','A'};
-		hashmap_arrow = new HashMap<Character, Map<Character,List<String>>>();
-		
+		hashmap_num = new HashMap<String, String>();
+		hashmap_arrow = new HashMap<String, String>();
 	}
 	
-	public int calcScore(String _str) {
-        int count = 0;
-        for (int i = 1; i < _str.length(); i++) {
-            if (_str.charAt(i) == _str.charAt(i - 1)) {
-            	count++;
-            } 
+	
+	private long countChars(String code, int depth, Map<String,String> arrow_moves, Map<Key, Long> memoMap) {
+        if (depth == 0) {
+            return code.length();
         }
-		return count;
-	}
-	
-	public List<ScoredPath> encodeHeuristics(ScoredPath _sp, Map<Character, Map<Character, List<String>>> _hashmap, char _ch_prev) {
-		final int K = 25;
-		
-		List<ScoredPath> currentPaths = new ArrayList<>();
-	    currentPaths.add(new ScoredPath(null, 0));
-		
-		
-	    for (int i = 0; i < _sp.values.size(); i++) {
-	    	String _value_part = _sp.value_memo.get(_sp.values.get(i));
-	    	StringBuilder old_string = new StringBuilder();
-	    	StringBuilder new_string = new StringBuilder();
-	    	
-	    	for (char _ch_next : _value_part.toCharArray()) {
-	    		PriorityQueue<ScoredPath> queue = new PriorityQueue<>(Comparator.comparingInt(ScoredPath::getScore));
-	    		
-	    		old_string.append(_ch_next);
-				// addig kell olvasni amig nem nem érünk egy elágazáshoz
-	    		List<String> steps = _hashmap.get(_ch_prev).get(_ch_next);
-				if(steps.size()==1) {
-					new_string.append(steps.get(0));
-				} else {
-					
-					for (ScoredPath scoredPath : currentPaths) {
-						for (String step : steps) {
-							
-//							String _post = step.equals(String.valueOf(_ACK))?scoredPath.value+step:scoredPath.value+step+_ACK;
-							
-							String _new_str = new_string.toString()+step+(step.equals(_ACK_STR)?"":_ACK_STR);
-									
-							queue.add(new ScoredPath(scoredPath,_new_str, calcScore(_new_str)));
-							
-							if(queue.size() > K) {
-								queue.poll();
-								
-							}
-						}
-					}
-					currentPaths = new ArrayList<>(queue);
-					old_string = new StringBuilder();
-			    	new_string = new StringBuilder();
-				}
-				
-				
-				_ch_prev = _ch_next;
-				
-			}
-		}
-		return currentPaths;
-	}
+        if (code.equals("A")) {
+            return 1;
+        }
+        final Key key = new Key(code, depth);
+        if (memoMap.containsKey(key)) {
+            return memoMap.get(key);
+        }
 
-
-	
-	public Set<String> encode(String _str, Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev){
-		Set<String> result = new HashSet<>();
-	    
-	    for (char _ch_next : _str.toCharArray()) {
-	        // Get the set of paths from _ch_prev to _ch_next
-	    	List<String> currentPaths = _hashmap.get(_ch_prev).get(_ch_next);
-	        Set<String> newResult = new HashSet<>();
-	        
-	        if (result.isEmpty()) {
-	            // Initialize result with the first step's paths
-	            newResult.addAll(currentPaths);
-	        } else {
-	            // Combine existing paths in result with current paths
-	        	if(!currentPaths.isEmpty()) {
-	        		for (String existingPath : result) {
-	            	
-	            		for (String newPath : currentPaths) {
-		                    String combinedPath = existingPath;
-		                    combinedPath+=newPath;
-		                    newResult.add(combinedPath);
-		                }
-	        		}
-	        	} else {
-            		newResult = result;
-            	}
-	        }
-	        Set<String> newResultWitA = new HashSet<>();
-	        for (String _nl : newResult) {
-	        	newResultWitA.add(_nl+_ACK);
-//	        	logln("parts:"+newResultWitA);
-			}
-	        
-	        // Update result for the next iteration
-	        result = newResultWitA;
-	        _ch_prev = _ch_next;
-	    }
-	    
-		return result;
-	}
-	
-	public Set<ScoredPath> encode_possible_strings_Heuristics(Set<ScoredPath> _to_be_encoded_strs, final Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev, int _lvl){
-		Set<ScoredPath> encoded_strs = new HashSet<ScoredPath>();
-		for (ScoredPath _sp : _to_be_encoded_strs) {
-			List<ScoredPath> chs = encodeHeuristics(_sp,_hashmap,_ch_prev);
-			encoded_strs.addAll(chs);
-		}
-		return encoded_strs;
-	}
-	
-	public Set<String> encode_possible_strings(Set<String> _to_be_encoded_strs, final Map<Character,Map<Character,List<String>>> _hashmap, char _ch_prev, int _lvl){
-		Set<String> encoded_strs = new HashSet<String>();
-		for (String _sp : _to_be_encoded_strs) {
-			Set<String> chs = encode(_sp,_hashmap,_ch_prev);
-			encoded_strs.addAll(chs);
-		}
-		return encoded_strs;
-	}
-	
-	private String decode(String _chars, Place[][] map, char _start) {
-		Place start_p = null;
-		for (int j = 0; j < map.length; j++) {
-			for (int i = 0; i < map[j].length; i++) {
-				if(map[j][i].ch==_start) {
-					start_p = map[j][i];
-					break;
-				}
-					 
-			}
-		}
-		
-		int newX = start_p.x;
-		int newY = start_p.y;
-		
-		StringBuffer sb = new StringBuffer();
-    	for (char c : _chars.toCharArray()) {
-    		
-    		int _dir=-2;
-    		switch (c) {
-				case '<':_dir=0; break;
-				case 'v':_dir=1; break;
-				case '>':_dir=2; break;
-				case '^':_dir=3; break;
-				case _ACK:_dir=-1; break;
-			}
-			if(_dir != -1) {
-				newX += dx[_dir];
-				newY += dy[_dir];
-			} else {
-				sb.append(map[newY][newX].ch);
-			}
-		}
-    	System.out.println(_chars+" dechipered: "+sb.toString());
-    	return sb.toString();
+        long total = 0;
+        for (final String move : code.split("A")) {
+            final StringBuilder sb = new StringBuilder();
+            for (int i = 0; i <= move.length(); i++) {
+            	String _key = (i==0?"A" : String.valueOf(move.charAt(i - 1)) ) + (i==move.length()?"A": String.valueOf(move.charAt(i)));
+                sb.append(arrow_moves.get(_key));
+                sb.append("A");
+            }
+            total += countChars(sb.toString(), depth - 1, arrow_moves, memoMap);
+        }
+        memoMap.put(key, total);
+        return total;
     }
 	
+	private long getNrChars(String code, Map<String,String> num_moves, Map<String,String> arrow_moves, Map<Key, Long> memoMap, int depth) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < code.length(); i++) {
+        	String _key = (i==0?"A" : String.valueOf(code.charAt(i - 1)) )+String.valueOf(code.charAt(i) );
+            sb.append(num_moves.get(_key));
+            sb.append("A");
+        }
+        final String start = sb.toString();
 
+        return countChars(start, depth, arrow_moves, memoMap);
+    }
 	
 	public void processFile() {
-		String[] lines = sb.toString().split("\n");
-		fillMap(elements_num, map_num, hashmap_num);
-		fillMap(elements_arrow, map_arrow, hashmap_arrow);
+		final List<String> input = List.of(sb.toString().split("\n"));
+		fillMaps();
 		
 		long result_part1 = 0;
-		char _ch_prev = _ACK;
-		
-		for (String _string : lines) {
-			int code = Integer.parseInt(_string.substring(0,_string.length()-1));
-			Set<String> sets_str = encode_possible_strings(new HashSet<String>(List.of(_string)),hashmap_num,_ch_prev,0);
-			
-			int minLength1 = sets_str.stream()
-                    .mapToInt(String::length)
-                    .min()
-                    .orElse(0);
-			
-//			sets_str=sets_str.stream()
-//		            .filter(str -> str.length() == minLength1)
-//		            .collect(Collectors.toSet());
-			
-			int _top_scores = sets_str.stream()
-                    .mapToInt(this::calcScore)
-                    .max()
-                    .orElse(0);
-			
-			sets_str=sets_str.stream()
-		            .filter(str -> calcScore(str) == _top_scores)
-		            .collect(Collectors.toSet());
-			
-			Optional<String> _ostr = sets_str.stream().findFirst();
-			logln("Finished 0. round, minlength : "+minLength1+" one example:"+_ostr.get());
-			
-			Set<ScoredPath> sets = new HashSet<ScoredPath>(); 
-			for (String _result : sets_str) {
-				ScoredPath sp = new ScoredPath(_result, calcScore(_result));
-				sets.add(sp);
-			}
-			
-			
-			int minLength = 0;
-			for (int i = 0; i < 6; i++) {
-				
-				
-				sets = encode_possible_strings_Heuristics(sets,hashmap_arrow,_ch_prev,i);
-				
-				int l_minLength = sets.stream()
-						.mapToInt(ScoredPath::getLength)
-	                    .min() 
-	                    .orElse(0);
-				
-				sets=sets.stream()
-			            .filter(str -> str.length == l_minLength)
-			            .collect(Collectors.toSet());
-				
-				int _top_scores2 = sets.stream()
-						.mapToInt(ScoredPath::getScore)
-	                    .max()
-	                    .orElse(0);
-				
-				sets=sets.stream()
-						.filter(str -> str.getScore() == _top_scores2)
-			            .collect(Collectors.toSet());
-				
-				sets = sets.stream()
-                        .limit(20) // Limit to first 20 elements
-                        .collect(Collectors.toSet());
-				
-				minLength = l_minLength;
-				Optional<ScoredPath> _ostr2  = sets.stream().findFirst();
-				logln("Finished "+(i+1)+". round, minlength : "+minLength+" set size: "+sets.size()+" one example:"+_ostr2.get().value_memo);
-				
-			}
-			
-			result_part1+=minLength*code;
-		}
-		
-		
+        Map<Key, Long> moveToLength = new HashMap<>();
+        for (final String code : input) {
+            final long nr = Integer.parseInt(code.substring(0,code.length()-1));
+            result_part1 += nr * getNrChars(code, hashmap_num, hashmap_arrow, moveToLength, 2);
+        }
 		
 		logln("result part1: "+result_part1); // correct: 278568
 		
 		long result_part2 = 0;
-		
-		logln("result part2: "+result_part2); // correct: 
+		moveToLength.clear();
+        for (final String code : input) {
+            final long nr = Integer.parseInt(code.substring(0,code.length()-1));
+            result_part2 += nr * getNrChars(code, hashmap_num, hashmap_arrow, moveToLength, 25);
+        }
+		logln("result part2: "+result_part2); // correct: 341460772681012
 	}
 
 	public static void main(String[] args) {
@@ -316,191 +95,43 @@ public class Day21 extends Day {
 		day.flush();
 	}
 	
-	public Place find_char_in_array(Place[][] arr,char _ch) {
-		for (int j = 0; j < arr.length; j++) { //y
-			for (int i = 0; i < arr[j].length; i++) { //x
-				if(arr[j][i].ch==_ch) return arr[j][i];
-			}
-		}
-		return null;
-	}
-	
-	public List<String> find_shortest_from_to(Place[][] arr,char char_from, char char_to) {
-		if(char_from == char_to) return new ArrayList<String>(List.of(_ACK+""));
-		
-		int height = arr.length;
-		int width=arr[0].length;
-		
-		Place from = find_char_in_array(arr,char_from);
-		Place to = find_char_in_array(arr,char_to);
-		
-		PriorityQueue<StackState> queue = new PriorityQueue<>((a, b) -> Integer.compare(heuristic(a), heuristic(b)));
-		List<String> shortest_paths = new ArrayList<String>();
-		queue.add(new StackState(from.y, from.x, 0,"",from,to,0));
-		int min_score = Integer.MAX_VALUE;
-		
-		while (!queue.isEmpty()) {
-	        StackState s = queue.poll();
-	        if (s.y == to.y && s.x == to.x) {
-	            if (s.score < min_score) {
-	            	shortest_paths.clear();
-	            	min_score = s.score;
-	            	shortest_paths.add(s.visited);
-	            } else if(s.score == min_score) {
-	            	shortest_paths.add(s.visited);
-	            }
-	            continue;
-	        }
-	        
-	        for (int i = 0; i < dx.length; i++) {
-	        	int newX = s.x + dx[i];
-	            int newY = s.y + dy[i];
-	            
-	            if (newX < 0 || newX >= width || newY < 0 || newY >= height || arr[newY][newX].wall) continue;
-	            Place next = arr[newY][newX];
-	            
-	            int newScore = s.score + 1;
-	            
-	            if (newScore <= next.min_score) {
-	            	int turnScore = (s.dir != i && s.dir != -1) ? 1 : 0;
-//	            	newScore+=turnScore; //TODO:benne hagyni, sokat gyorsít
-	            	next.min_score = newScore;
-	                queue.add(new StackState(newY, newX, newScore,s.visited+dc[i],s.from,s.to,i));
-	            }
-    		}
-		}
-		return shortest_paths;
-	}
-	
-	public void fillMap(char[] _elements, Place[][] _map, Map<Character, Map<Character,List<String>>> _hashmap) {
-		for (char from : _elements) {
-			Map<Character,List<String>> row = new HashMap<Character,List<String>>();
-			for (char to : _elements) {
-				row.put(to, find_shortest_from_to(_map,from,to));
-				resetDist(_map);
-			}
-			_hashmap.put(Character.valueOf(from), row);
-		}
-	}
-	
-	private void resetDist(Place[][] _map) {
-		for (int j = 0; j < _map.length; j++) { //y
-			for (int i = 0; i < _map[j].length; i++) { //x
-				_map[j][i].min_score=Integer.MAX_VALUE;
-			}
-		}
-	}
-	
-	private int heuristic(StackState state) {
-	    return Math.abs(state.to.x - state.x) + Math.abs(state.to.y - state.y);
-	}
-	
-	class ScoredPath {
-		
-		public int calcScore(String _str) {
-	        int count = 0;
-	        for (int i = 1; i < _str.length(); i++) {
-	            if (_str.charAt(i) == _str.charAt(i - 1)) {
-	            	count++;
-	            } 
-	        }
-			return count;
-		}
-		
-		List<Integer> values;
-		
-		BiMap<Integer, String> value_memo;
-		HashMap<Integer, Integer> score_memo;
-		
-		int length;
-		int score;
-		
-		public int getScore() {
-			return score;
-		}
-		
-		public int getLength() {
-			return length;
-		}
-		
-		public void store_value(String _str, int _score){
-			if(_str==null) return;
-			int _ID=value_memo.size();
-			if(!value_memo.containsValue(_str)) {
-				value_memo.put(_ID, _str);
-			}
-			score_memo.put(_ID, _score);
-			values.add(_ID);
-			score+=_score;
-			length+=_str.length();
-			if(values.size()>1) {
-				String _temp1 = value_memo.get(values.size()-2);
-				String _temp2 = value_memo.get(values.size()-1);
-				if(_temp1.length()>0 && _temp2.length()>0) {
-					String _comb = _temp1.substring(_temp1.length()-1)+_temp2.substring(0,1);
-					score+=calcScore(_comb);
-				}
-			}
-		}
 
-		public ScoredPath(ScoredPath sp, String _str, int _score) {
-			values = new ArrayList<Integer>(sp.values);
-			
-			value_memo = HashBiMap.create();
-			value_memo.putAll(sp.value_memo);
-			score_memo = new HashMap<Integer, Integer>();
-			score_memo.putAll(sp.score_memo);
-			this.score=sp.score;
-			this.length=sp.length;
-			store_value(_str,_score);
-		}
+	public void fillMaps() {
 		
-		public ScoredPath(String _str, int _score) {
-			values = new ArrayList<Integer>();
-			value_memo = HashBiMap.create();
-			score_memo = new HashMap<Integer, Integer>();
-//			this.score=_score;
-//			this.length=_str.length();
-			store_value(_str,_score);
-			
-		}
-		
-		@Override
-        public String toString() {
-			StringBuilder sb = new StringBuilder();
-			for (Integer _ID: values) {
-				sb.append(value_memo.get(_ID));
-			}
-        	return "s:"+score+" "+sb.toString();
-        }
-	}
-	
-	class StackState {
-		Place from;
-		Place to;
-		int y = 0;
-        int x = 0;
-        int score = 0;
-        int dir = 0;
-        String visited = null;
-        
-        public StackState(int _y, int _x, int _score, String _visited, Place _from, Place _to, int _dir) {
-        	this.y=_y;
-        	this.x=_x;
-        	this.score=_score;
-        	this.visited=_visited;
-        	this.from=_from;
-        	this.to=_to;
-        	this.dir=_dir;
-        }
-        
-        @Override
-        public String toString() {
-        	return "("+y+","+x+") s:"+score;
-        }
-	}
-	
-	/*	+---+---+---+
+	/*
+			+---+---+
+		    | ^ | A |
+		+---+---+---+
+		| < | v | > |
+		+---+---+---+ 
+	 */
+		hashmap_arrow.put("AA","");
+		hashmap_arrow.put("^^","");
+		hashmap_arrow.put("^<","v<");
+		hashmap_arrow.put("^>","v>");
+		hashmap_arrow.put("^A",">");
+		hashmap_arrow.put("^v","v");
+		hashmap_arrow.put("<^",">^");
+		hashmap_arrow.put("<<","");
+		hashmap_arrow.put("<>",">>");
+		hashmap_arrow.put("<A",">>^");
+		hashmap_arrow.put("<v",">");
+		hashmap_arrow.put(">^","<^");
+		hashmap_arrow.put("><","<<");
+		hashmap_arrow.put(">>","");
+		hashmap_arrow.put(">A","^");
+		hashmap_arrow.put(">v","<");
+		hashmap_arrow.put("A^","<");
+		hashmap_arrow.put("A<","v<<");
+		hashmap_arrow.put("A>","v");
+		hashmap_arrow.put("Av","<v");
+		hashmap_arrow.put("v^","^");
+		hashmap_arrow.put("v<","<");
+		hashmap_arrow.put("v>",">");
+		hashmap_arrow.put("vA","^>");
+		hashmap_arrow.put("vv","");
+/*
+ 	 	+---+---+---+
 		| 7 | 8 | 9 |
 		+---+---+---+
 		| 4 | 5 | 6 |
@@ -508,38 +139,132 @@ public class Day21 extends Day {
 		| 1 | 2 | 3 |
 		+---+---+---+
 		    | 0 | A |
-		    +---+---+
-		    
-			+---+---+
-		    | ^ | A |
-		+---+---+---+
-		| < | v | > |
-		+---+---+---+ 
-	 */
-	
-	class Place extends Coordinate {
-		boolean wall;
-		char ch;
-		int min_score;
-		
-		public Place(int x, int y, char _ch, boolean _wall) {
-			super(x, y);
-			this.ch=_ch;
-			this.wall = _wall;
-			min_score = Integer.MAX_VALUE;
-		}
-		@Override
-		public String toString() {
-			return (wall?"#":".")+super.toString();
-		}
-		public void step() {
-		}
-		@Override
-	    public boolean equals(Object o) {
-	        if (this == o) return true;
-	        if (o == null || getClass() != o.getClass()) return false;
-	        Place that = (Place) o;
-	        return x == that.x && y == that.y;
-	    }
+		    +---+---+ 
+ */	
+		hashmap_num.put("00","");
+		hashmap_num.put("01","^<");
+		hashmap_num.put("02","^");
+		hashmap_num.put("03","^>");
+		hashmap_num.put("04","^^<");
+		hashmap_num.put("05","^^");
+		hashmap_num.put("06","^^>");
+		hashmap_num.put("07","^^^<");
+		hashmap_num.put("08","^^^");
+		hashmap_num.put("09","^^^>");
+		hashmap_num.put("0A",">");
+		hashmap_num.put("10",">v");
+		hashmap_num.put("11","");
+		hashmap_num.put("12",">");
+		hashmap_num.put("13",">>");
+		hashmap_num.put("14","^");
+		hashmap_num.put("15","^>");
+		hashmap_num.put("16","^>>");
+		hashmap_num.put("17","^^");
+		hashmap_num.put("18","^^>");
+		hashmap_num.put("19","^^>>");
+		hashmap_num.put("1A",">>v");
+		hashmap_num.put("20","v");
+		hashmap_num.put("21","<");
+		hashmap_num.put("22","");
+		hashmap_num.put("23",">");
+		hashmap_num.put("24","<^");
+		hashmap_num.put("25","^");
+		hashmap_num.put("26","^>");
+		hashmap_num.put("27","<^^");
+		hashmap_num.put("28","^^");
+		hashmap_num.put("29","^^>");
+		hashmap_num.put("2A","v>");
+		hashmap_num.put("30","<v");
+		hashmap_num.put("31","<<");
+		hashmap_num.put("32","<");
+		hashmap_num.put("33","");
+		hashmap_num.put("34","<<^");
+		hashmap_num.put("35","<^");
+		hashmap_num.put("36","^");
+		hashmap_num.put("37","<<^^");
+		hashmap_num.put("38","<^^");
+		hashmap_num.put("39","^^");
+		hashmap_num.put("3A","v");
+		hashmap_num.put("40",">vv");
+		hashmap_num.put("41","v");
+		hashmap_num.put("42","v>");
+		hashmap_num.put("43","v>>");
+		hashmap_num.put("44","");
+		hashmap_num.put("45",">");
+		hashmap_num.put("46",">>");
+		hashmap_num.put("47","^");
+		hashmap_num.put("48","^>");
+		hashmap_num.put("49","^>>");
+		hashmap_num.put("4A",">>vv");
+		hashmap_num.put("50","vv");
+		hashmap_num.put("51","<v");
+		hashmap_num.put("52","v");
+		hashmap_num.put("53","v>");
+		hashmap_num.put("54","<");
+		hashmap_num.put("55","");
+		hashmap_num.put("56",">");
+		hashmap_num.put("57","<^");
+		hashmap_num.put("58","^");
+		hashmap_num.put("59","^>");
+		hashmap_num.put("5A","vv>");
+		hashmap_num.put("60","<vv");
+		hashmap_num.put("61","<<v");
+		hashmap_num.put("62","<v");
+		hashmap_num.put("63","v");
+		hashmap_num.put("64","<<");
+		hashmap_num.put("65","<");
+		hashmap_num.put("66","");
+		hashmap_num.put("67","<<^");
+		hashmap_num.put("68","<^");
+		hashmap_num.put("69","^");
+		hashmap_num.put("6A","vv");
+		hashmap_num.put("70",">vvv");
+		hashmap_num.put("71","vv");
+		hashmap_num.put("72","vv>");
+		hashmap_num.put("73","vv>>");
+		hashmap_num.put("74","v");
+		hashmap_num.put("75","v>");
+		hashmap_num.put("76","v>>");
+		hashmap_num.put("77","");
+		hashmap_num.put("78",">");
+		hashmap_num.put("79",">>");
+		hashmap_num.put("7A",">>vvv");
+		hashmap_num.put("80","vvv");
+		hashmap_num.put("81","<vv");
+		hashmap_num.put("82","vv");
+		hashmap_num.put("83","vv>");
+		hashmap_num.put("84","<v");
+		hashmap_num.put("85","v");
+		hashmap_num.put("86","v>");
+		hashmap_num.put("87","<");
+		hashmap_num.put("88","");
+		hashmap_num.put("89",">");
+		hashmap_num.put("8A","vvv>");
+		hashmap_num.put("90","<vvv");
+		hashmap_num.put("91","<<vv");
+		hashmap_num.put("92","<vv");
+		hashmap_num.put("93","vv");
+		hashmap_num.put("94","<<v");
+		hashmap_num.put("95","<v");
+		hashmap_num.put("96","v");
+		hashmap_num.put("97","<<");
+		hashmap_num.put("98","<");
+		hashmap_num.put("99","");
+		hashmap_num.put("9A","vvv");
+		hashmap_num.put("A0","<");
+		hashmap_num.put("A1","^<<");
+		hashmap_num.put("A2","<^");
+		hashmap_num.put("A3","^");
+		hashmap_num.put("A4","^^<<");
+		hashmap_num.put("A5","<^^");
+		hashmap_num.put("A6","^^");
+		hashmap_num.put("A7","^^^<<");
+		hashmap_num.put("A8","<^^^");
+		hashmap_num.put("A9","^^^");
+		hashmap_num.put("AA","");
+
 	}
 }
+
+record Key(String code, int depth) {
+};
